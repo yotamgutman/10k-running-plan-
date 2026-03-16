@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="he">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>10K Training Plan</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>10K Training</title>
 
 <style>
 
 body{
 font-family:Arial;
-background:#f5f7fb;
+background:#f4f6fb;
 margin:0;
 padding:20px;
 direction:rtl;
@@ -18,7 +19,12 @@ direction:rtl;
 
 h1{
 text-align:center;
-margin-bottom:30px;
+}
+
+.stats{
+text-align:center;
+margin-bottom:20px;
+font-size:18px;
 }
 
 .card{
@@ -30,13 +36,12 @@ box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
 .day{
-font-weight:bold;
 font-size:20px;
+font-weight:bold;
 margin-bottom:8px;
 }
 
 .workout{
-font-size:16px;
 line-height:1.5;
 }
 
@@ -60,77 +65,118 @@ background:#16a34a;
 
 <body>
 
-<h1>🏃 תוכנית אימונים 10K – יעד 46 דקות</h1>
+<h1>🏃 תוכנית אימונים 10K</h1>
 
-<div class="card">
-<div class="day">ראשון – התאוששות</div>
-<div class="workout">
-5 ק״מ בקצב 6:00-6:20
-</div>
-<button onclick="done(this)">סיימתי</button>
+<div class="stats">
+אימונים שבוצעו: <span id="count">0</span>
 </div>
 
-<div class="card">
-<div class="day">שני – ריצה קלה</div>
-<div class="workout">
-6-7 ק״מ בקצב 5:35-5:55  
-+ 4 סטריידים של 20 שניות
-</div>
-<button onclick="done(this)">סיימתי</button>
-</div>
-
-<div class="card">
-<div class="day">שלישי – אינטרוולים</div>
-<div class="workout">
-חימום: 2 ק״מ קל  
-אימון: 5×800 מ׳ בקצב 4:10  
-התאוששות: 400 מ׳ קל  
-קירור: 2 ק״מ
-</div>
-<button onclick="done(this)">סיימתי</button>
-</div>
-
-<div class="card">
-<div class="day">רביעי – ריצה קלה</div>
-<div class="workout">
-6 ק״מ בקצב 5:40-5:55
-</div>
-<button onclick="done(this)">סיימתי</button>
-</div>
-
-<div class="card">
-<div class="day">חמישי – טמפו</div>
-<div class="workout">
-חימום: 2 ק״מ  
-טמפו: 4 ק״מ בקצב 4:45  
-קירור: 2 ק״מ
-</div>
-<button onclick="done(this)">סיימתי</button>
-</div>
-
-<div class="card">
-<div class="day">שישי – מנוחה</div>
-<div class="workout">
-מנוחה או אופניים קלים 30 דקות
-</div>
-<button onclick="done(this)">סיימתי</button>
-</div>
-
-<div class="card">
-<div class="day">שבת – ריצה ארוכה</div>
-<div class="workout">
-10-11 ק״מ בקצב 5:45-6:10  
-כל שבועיים: 2 ק״מ אחרונים בקצב 4:55
-</div>
-<button onclick="done(this)">סיימתי</button>
-</div>
+<div id="workouts"></div>
 
 <script>
 
-function done(btn){
-btn.classList.toggle("done")
-btn.innerText="✔ הושלם"
+const workouts = [
+
+{
+day:"ראשון",
+text:"5 ק״מ התאוששות בקצב 6:00-6:20"
+},
+
+{
+day:"שני",
+text:"6-7 ק״מ קל בקצב 5:35-5:55 + 4 סטריידים"
+},
+
+{
+day:"שלישי",
+text:"חימום 2 ק״מ → 5×800 מ׳ בקצב 4:10 → התאוששות 400 מ׳ → קירור 2 ק״מ"
+},
+
+{
+day:"רביעי",
+text:"6 ק״מ ריצה קלה"
+},
+
+{
+day:"חמישי",
+text:"טמפו: 2 ק״מ חימום → 4 ק״מ בקצב 4:45 → 2 ק״מ קירור"
+},
+
+{
+day:"שישי",
+text:"מנוחה או אופניים קלים"
+},
+
+{
+day:"שבת",
+text:"ריצה ארוכה 10-11 ק״מ בקצב 5:45-6:10"
 }
+
+]
+
+const container = document.getElementById("workouts")
+
+function render(){
+
+container.innerHTML=""
+
+let doneCount=0
+
+workouts.forEach((w,i)=>{
+
+const saved = localStorage.getItem("run"+i)
+
+const card = document.createElement("div")
+card.className="card"
+
+card.innerHTML=`
+
+<div class="day">${w.day}</div>
+
+<div class="workout">${w.text}</div>
+
+<button onclick="toggle(${i},this)">
+${saved ? "✔ הושלם" : "סיימתי"}
+</button>
+
+`
+
+if(saved){
+card.querySelector("button").classList.add("done")
+doneCount++
+}
+
+container.appendChild(card)
+
+})
+
+document.getElementById("count").innerText = doneCount
+
+}
+
+function toggle(i,btn){
+
+const key="run"+i
+
+if(localStorage.getItem(key)){
+
+localStorage.removeItem(key)
+btn.classList.remove("done")
+btn.innerText="סיימתי"
+
+}else{
+
+localStorage.setItem(key,true)
+btn.classList.add("done")
+btn.innerText="✔ הושלם"
+
+}
+
+render()
+
+}
+
+render()
 
 </script>
 
