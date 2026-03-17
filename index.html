@@ -9,7 +9,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-
 body{
 font-family:Arial;
 background:#f4f6fb;
@@ -43,15 +42,20 @@ box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
 .done{background:#16a34a;}
-
 .rest{opacity:0.6;}
 
+.details{
+margin-top:8px;
+font-size:14px;
+line-height:1.6;
+color:#374151;
+}
 </style>
 </head>
 
 <body>
 
-<h1>🏃 10K Training</h1>
+<h1>🏃 תוכנית 10K – יעד 46 דקות</h1>
 
 <div class="topbar">
 <button onclick="prevWeek()">⬅ שבוע</button>
@@ -61,10 +65,10 @@ box-shadow:0 4px 12px rgba(0,0,0,0.08);
 
 <div id="workouts"></div>
 
-<h2>📊 התקדמות</h2>
+<h2>📊 ק״מ שבוצעו</h2>
 <canvas id="chart"></canvas>
 
-<h2>🏁 מירוץ</h2>
+<h2>🏁 אסטרטגיית מירוץ</h2>
 <div class="card">
 ק״מ 1-2: 4:40  
 <br>ק״מ 3-7: 4:35  
@@ -80,23 +84,95 @@ let week = localStorage.getItem("week") || 0
 const plan = [
 
 [
-{day:"ראשון",text:"מנוחה",km:0,rest:true},
-{day:"שני",text:"6 ק״מ קל + סטריידים",km:6},
-{day:"שלישי",text:"5×800 אינטרוולים",km:8},
-{day:"רביעי",text:"6 ק״מ קל",km:6},
-{day:"חמישי",text:"4 ק״מ טמפו",km:8},
-{day:"שישי",text:"5 ק״מ התאוששות",km:5},
-{day:"שבת",text:"10 ק״מ ארוך",km:10}
+{
+day:"ראשון",
+title:"מנוחה",
+details:"מנוחה מלאה או הליכה קלה",
+km:0,
+rest:true
+},
+{
+day:"שני",
+title:"ריצה קלה + סטריידים",
+details:"6 ק״מ בקצב 5:35-5:55\n+ 4×20 שניות סטריידים",
+km:6
+},
+{
+day:"שלישי",
+title:"אינטרוולים",
+details:"חימום: 2 ק״מ קל\nאימון: 5×800 מ׳ בקצב 4:10\nהתאוששות: 400 מ׳ קל\nקירור: 2 ק״מ",
+km:8
+},
+{
+day:"רביעי",
+title:"ריצה קלה",
+details:"6 ק״מ בקצב 5:40-5:55",
+km:6
+},
+{
+day:"חמישי",
+title:"טמפו",
+details:"חימום: 2 ק״מ\nטמפו: 4 ק״מ בקצב 4:45\nקירור: 2 ק״מ",
+km:8
+},
+{
+day:"שישי",
+title:"התאוששות",
+details:"5 ק״מ בקצב 6:00-6:20",
+km:5
+},
+{
+day:"שבת",
+title:"ריצה ארוכה",
+details:"10 ק״מ בקצב 5:45-6:10\nפעם בשבועיים: 2 ק״מ אחרונים בקצב 4:55",
+km:10
+}
 ],
 
 [
-{day:"ראשון",text:"מנוחה",km:0,rest:true},
-{day:"שני",text:"7 ק״מ קל",km:7},
-{day:"שלישי",text:"5×800 אינטרוולים",km:8},
-{day:"רביעי",text:"6 ק״מ קל",km:6},
-{day:"חמישי",text:"4 ק״מ טמפו",km:8},
-{day:"שישי",text:"5 ק״מ התאוששות",km:5},
-{day:"שבת",text:"11 ק״מ ארוך",km:11}
+{
+day:"ראשון",
+title:"מנוחה",
+details:"מנוחה מלאה",
+km:0,
+rest:true
+},
+{
+day:"שני",
+title:"ריצה קלה",
+details:"7 ק״מ בקצב 5:35-5:55",
+km:7
+},
+{
+day:"שלישי",
+title:"אינטרוולים",
+details:"חימום: 2 ק״מ\n5×800 מ׳ בקצב 4:10\nקירור: 2 ק״מ",
+km:8
+},
+{
+day:"רביעי",
+title:"ריצה קלה",
+details:"6 ק״מ",
+km:6
+},
+{
+day:"חמישי",
+title:"טמפו",
+details:"2 ק״מ חימום\n4 ק״מ בקצב 4:45\n2 ק״מ קירור",
+km:8
+},
+{
+day:"שישי",
+title:"התאוששות",
+details:"5 ק״מ קל",
+km:5
+},
+{
+day:"שבת",
+title:"ריצה ארוכה",
+details:"11 ק״מ בקצב 5:45-6:10",
+km:11
+}
 ]
 
 ]
@@ -121,11 +197,11 @@ card.className="card"
 if(w.rest){card.classList.add("rest")}
 
 card.innerHTML=`
-<b>${w.day}</b><br>
-${w.text}<br>
-${w.km} ק״מ
+<b>${w.day} – ${w.title}</b><br>
+<div class="details">${w.details.replace(/\n/g,"<br>")}</div>
+<br>${w.km} ק״מ
 ${w.rest ? "" : `<br><button onclick="toggle('${key}',this)">
-${saved ? "✔" : "סיימתי"}
+${saved ? "✔ הושלם" : "סיימתי"}
 </button>`}
 `
 
@@ -139,7 +215,7 @@ drawChart(totalKm)
 
 }
 
-function toggle(key,btn){
+function toggle(key){
 
 if(localStorage.getItem(key)){
 localStorage.removeItem(key)
