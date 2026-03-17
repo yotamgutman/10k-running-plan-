@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="he">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>10K Training</title>
+<title>10K Training App</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
@@ -17,162 +18,169 @@ padding:20px;
 direction:rtl;
 }
 
-h1{
-text-align:center;
+h1{text-align:center;}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+margin-bottom:20px;
 }
 
-.stats{
-text-align:center;
-margin-bottom:20px;
-font-size:18px;
+button{
+background:#2563eb;
+color:white;
+border:none;
+padding:8px 12px;
+border-radius:8px;
 }
 
 .card{
 background:white;
 border-radius:14px;
-padding:18px;
-margin-bottom:16px;
+padding:16px;
+margin-bottom:12px;
 box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
-.day{
-font-size:20px;
-font-weight:bold;
-margin-bottom:8px;
-}
+.done{background:#16a34a;}
 
-.workout{
-line-height:1.5;
-}
-
-button{
-margin-top:10px;
-background:#22c55e;
-border:none;
-color:white;
-padding:8px 12px;
-border-radius:8px;
-font-size:14px;
-}
-
-.done{
-background:#16a34a;
-}
+.rest{opacity:0.6;}
 
 </style>
-
 </head>
 
 <body>
 
-<h1>🏃 תוכנית אימונים 10K</h1>
+<h1>🏃 10K Training</h1>
 
-<div class="stats">
-אימונים שבוצעו: <span id="count">0</span>
+<div class="topbar">
+<button onclick="prevWeek()">⬅ שבוע</button>
+<div id="weekTitle"></div>
+<button onclick="nextWeek()">שבוע ➡</button>
 </div>
 
 <div id="workouts"></div>
 
+<h2>📊 התקדמות</h2>
+<canvas id="chart"></canvas>
+
+<h2>🏁 מירוץ</h2>
+<div class="card">
+ק״מ 1-2: 4:40  
+<br>ק״מ 3-7: 4:35  
+<br>ק״מ 8: 4:32  
+<br>ק״מ 9: 4:30  
+<br>ק״מ 10: הכל
+</div>
+
 <script>
 
-const workouts = [
+let week = localStorage.getItem("week") || 0
 
-{
-day:"ראשון",
-text:"5 ק״מ התאוששות בקצב 6:00-6:20"
-},
+const plan = [
 
-{
-day:"שני",
-text:"6-7 ק״מ קל בקצב 5:35-5:55 + 4 סטריידים"
-},
+[
+{day:"ראשון",text:"מנוחה",km:0,rest:true},
+{day:"שני",text:"6 ק״מ קל + סטריידים",km:6},
+{day:"שלישי",text:"5×800 אינטרוולים",km:8},
+{day:"רביעי",text:"6 ק״מ קל",km:6},
+{day:"חמישי",text:"4 ק״מ טמפו",km:8},
+{day:"שישי",text:"5 ק״מ התאוששות",km:5},
+{day:"שבת",text:"10 ק״מ ארוך",km:10}
+],
 
-{
-day:"שלישי",
-text:"חימום 2 ק״מ → 5×800 מ׳ בקצב 4:10 → התאוששות 400 מ׳ → קירור 2 ק״מ"
-},
-
-{
-day:"רביעי",
-text:"6 ק״מ ריצה קלה"
-},
-
-{
-day:"חמישי",
-text:"טמפו: 2 ק״מ חימום → 4 ק״מ בקצב 4:45 → 2 ק״מ קירור"
-},
-
-{
-day:"שישי",
-text:"מנוחה או אופניים קלים"
-},
-
-{
-day:"שבת",
-text:"ריצה ארוכה 10-11 ק״מ בקצב 5:45-6:10"
-}
+[
+{day:"ראשון",text:"מנוחה",km:0,rest:true},
+{day:"שני",text:"7 ק״מ קל",km:7},
+{day:"שלישי",text:"5×800 אינטרוולים",km:8},
+{day:"רביעי",text:"6 ק״מ קל",km:6},
+{day:"חמישי",text:"4 ק״מ טמפו",km:8},
+{day:"שישי",text:"5 ק״מ התאוששות",km:5},
+{day:"שבת",text:"11 ק״מ ארוך",km:11}
+]
 
 ]
 
-const container = document.getElementById("workouts")
-
 function render(){
 
+const container = document.getElementById("workouts")
 container.innerHTML=""
 
-let doneCount=0
+document.getElementById("weekTitle").innerText="שבוע "+(parseInt(week)+1)
 
-workouts.forEach((w,i)=>{
+let totalKm=0
 
-const saved = localStorage.getItem("run"+i)
+plan[week].forEach((w,i)=>{
 
-const card = document.createElement("div")
+const key="w"+week+"_"+i
+const saved=localStorage.getItem(key)
+
+const card=document.createElement("div")
 card.className="card"
 
+if(w.rest){card.classList.add("rest")}
+
 card.innerHTML=`
-
-<div class="day">${w.day}</div>
-
-<div class="workout">${w.text}</div>
-
-<button onclick="toggle(${i},this)">
-${saved ? "✔ הושלם" : "סיימתי"}
-</button>
-
+<b>${w.day}</b><br>
+${w.text}<br>
+${w.km} ק״מ
+${w.rest ? "" : `<br><button onclick="toggle('${key}',this)">
+${saved ? "✔" : "סיימתי"}
+</button>`}
 `
 
-if(saved){
-card.querySelector("button").classList.add("done")
-doneCount++
-}
+if(saved){totalKm+=w.km}
 
 container.appendChild(card)
 
 })
 
-document.getElementById("count").innerText = doneCount
+drawChart(totalKm)
 
 }
 
-function toggle(i,btn){
-
-const key="run"+i
+function toggle(key,btn){
 
 if(localStorage.getItem(key)){
-
 localStorage.removeItem(key)
-btn.classList.remove("done")
-btn.innerText="סיימתי"
-
 }else{
-
 localStorage.setItem(key,true)
-btn.classList.add("done")
-btn.innerText="✔ הושלם"
-
 }
 
 render()
+
+}
+
+function nextWeek(){
+if(week < plan.length-1){
+week++
+localStorage.setItem("week",week)
+render()
+}
+}
+
+function prevWeek(){
+if(week > 0){
+week--
+localStorage.setItem("week",week)
+render()
+}
+}
+
+function drawChart(km){
+
+const ctx=document.getElementById('chart')
+
+new Chart(ctx,{
+type:'bar',
+data:{
+labels:['ק״מ שבוצעו'],
+datasets:[{
+data:[km],
+backgroundColor:'#22c55e'
+}]
+}
+})
 
 }
 
