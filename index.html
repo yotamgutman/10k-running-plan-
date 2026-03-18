@@ -3,265 +3,517 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>10K Training App</title>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 body{
-font-family:Arial;
-background:#f4f6fb;
-margin:0;
-padding:20px;
-direction:rtl;
+  font-family:Arial;
+  background:#f4f6fb;
+  margin:0;
+  padding:20px;
+  direction:rtl;
 }
 
-h1{text-align:center;}
+h1{text-align:center;margin-bottom:8px;}
+.subtitle{
+  text-align:center;
+  color:#6b7280;
+  margin:0 0 18px;
+  line-height:1.5;
+}
 
 .topbar{
-display:flex;
-justify-content:space-between;
-margin-bottom:20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:20px;
+}
+
+#weekTitle{
+  text-align:center;
+  font-weight:700;
+  flex:1;
 }
 
 button{
-background:#2563eb;
-color:white;
-border:none;
-padding:8px 12px;
-border-radius:8px;
+  background:#2563eb;
+  color:white;
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  cursor:pointer;
 }
+
+button.done{background:#16a34a;}
 
 .card{
-background:white;
-border-radius:14px;
-padding:16px;
-margin-bottom:12px;
-box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  background:white;
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
-.done{background:#16a34a;}
-.rest{opacity:0.6;}
+.doneCard{
+  border:1px solid #bbf7d0;
+}
+
+.rest{opacity:0.72;}
 
 .details{
-margin-top:8px;
-font-size:14px;
-line-height:1.6;
-color:#374151;
+  margin-top:8px;
+  font-size:14px;
+  line-height:1.6;
+  color:#374151;
+}
+
+.small{
+  font-size:13px;
+  color:#6b7280;
+  font-weight:400;
+}
+
+#kmSummary{
+  margin-bottom:12px;
 }
 </style>
 </head>
-
 <body>
 
 <h1>🏃 תוכנית 10K – יעד 46 דקות</h1>
+<p class="subtitle">
+מחזור עד מירוץ 24.4.2026 · שבועות מתחילים ביום שני · ריצה ארוכה בשבת · מנוחה ביום ראשון<br>
+מבנה 80/20: שני אימוני איכות בשבוע, וכל שאר הנפח קל ונשלט
+</p>
 
 <div class="topbar">
-<button onclick="prevWeek()">⬅ שבוע</button>
-<div id="weekTitle"></div>
-<button onclick="nextWeek()">שבוע ➡</button>
+  <button onclick="prevWeek()">⬅ שבוע</button>
+  <div id="weekTitle"></div>
+  <button onclick="nextWeek()">שבוע ➡</button>
 </div>
 
 <div id="workouts"></div>
 
 <h2>📊 ק״מ שבוצעו</h2>
-<canvas id="chart"></canvas>
+<div class="card">
+  <div id="kmSummary"></div>
+  <canvas id="chart"></canvas>
+</div>
 
 <h2>🏁 אסטרטגיית מירוץ</h2>
 <div class="card">
-ק״מ 1-2: 4:40  
-<br>ק״מ 3-7: 4:35  
-<br>ק״מ 8: 4:32  
-<br>ק״מ 9: 4:30  
-<br>ק״מ 10: הכל
+  ק״מ 1-2: 4:38–4:40 רגוע ונשלט
+  <br>ק״מ 3-7: 4:36 יציב
+  <br>ק״מ 8-9: 4:33–4:35 אם מרגיש טוב
+  <br>ק״מ 10: כל מה שנשאר
 </div>
 
 <script>
-
-let week = localStorage.getItem("week") || 0
+const PLAN_VERSION = "10k_apr24_2026_v2";
+let week = parseInt(localStorage.getItem(`${PLAN_VERSION}_week`) || "0", 10);
+let chartInstance = null;
 
 const plan = [
+  {
+    label:"שבוע 1 · 16/3–22/3",
+    days:[
+      {
+        day:"שני",
+        title:"ריצה קלה + סטריידים",
+        details:"6 ק״מ קל בקצב 5:35-5:55\n+ 4×20 שניות סטריידים עם הליכה/ג׳וג ביניהן",
+        km:6
+      },
+      {
+        day:"שלישי",
+        title:"אינטרוולים קצרים",
+        details:"2 ק״מ חימום\n6×400 מ׳ בקצב 4:12-4:18\n200 מ׳ ג׳וג בין החזרות\n2 ק״מ קירור",
+        km:8
+      },
+      {
+        day:"רביעי",
+        title:"ריצה קלה",
+        details:"7 ק״מ בקצב 5:35-5:55. להישאר קל באמת.",
+        km:7
+      },
+      {
+        day:"חמישי",
+        title:"סף / קרוז אינטרוול",
+        details:"2 ק״מ חימום\n3×1 ק״מ בקצב 4:38-4:42\n2 דקות ג׳וג קל בין החזרות\n2 ק״מ קירור",
+        km:8
+      },
+      {
+        day:"שישי",
+        title:"התאוששות",
+        details:"5 ק״מ קל מאוד בקצב 5:50-6:15",
+        km:5
+      },
+      {
+        day:"שבת",
+        title:"ריצה ארוכה",
+        details:"12 ק״מ בקצב 5:35-6:00. בלי לחץ, כל הריצה אירובית.",
+        km:12
+      },
+      {
+        day:"ראשון",
+        title:"מנוחה",
+        details:"מנוחה מלאה או 20-30 דקות הליכה קלה",
+        km:0,
+        rest:true
+      }
+    ]
+  },
+  {
+    label:"שבוע 2 · 23/3–29/3",
+    days:[
+      {
+        day:"שני",
+        title:"ריצה קלה",
+        details:"7 ק״מ בקצב 5:35-5:55 + 4 האצות קצרות בסוף",
+        km:7
+      },
+      {
+        day:"שלישי",
+        title:"אינטרוולים 800",
+        details:"2 ק״מ חימום\n5×800 מ׳ בקצב 4:12-4:18\n400 מ׳ ג׳וג קל בין החזרות\n2 ק״מ קירור",
+        km:9
+      },
+      {
+        day:"רביעי",
+        title:"ריצה קלה",
+        details:"7 ק״מ בקצב 5:35-5:55",
+        km:7
+      },
+      {
+        day:"חמישי",
+        title:"טמפו רציף",
+        details:"2 ק״מ חימום\n5 ק״מ בקצב 4:42-4:46\n2 ק״מ קירור",
+        km:9
+      },
+      {
+        day:"שישי",
+        title:"התאוששות",
+        details:"5 ק״מ קל מאוד בקצב 5:50-6:15",
+        km:5
+      },
+      {
+        day:"שבת",
+        title:"ריצה ארוכה",
+        details:"13 ק״מ בקצב 5:35-6:00. לשמור על דופק/תחושה נוחים.",
+        km:13
+      },
+      {
+        day:"ראשון",
+        title:"מנוחה",
+        details:"מנוחה מלאה",
+        km:0,
+        rest:true
+      }
+    ]
+  },
+  {
+    label:"שבוע 3 · 30/3–5/4",
+    days:[
+      {
+        day:"שני",
+        title:"ריצה קלה + סטריידים",
+        details:"7 ק״מ קל בקצב 5:35-5:55\n+ 4×20 שניות סטריידים",
+        km:7
+      },
+      {
+        day:"שלישי",
+        title:"אינטרוולים 1,000",
+        details:"2 ק״מ חימום\n4×1,000 מ׳ בקצב 4:18-4:22\n400 מ׳ ג׳וג בין החזרות\n2 ק״מ קירור",
+        km:9
+      },
+      {
+        day:"רביעי",
+        title:"ריצה קלה",
+        details:"7 ק״מ קל בקצב 5:35-5:55",
+        km:7
+      },
+      {
+        day:"חמישי",
+        title:"פרוגרסיב נשלט",
+        details:"2 ק״מ קל\n4 ק״מ התקדמות מ-4:45 ל-4:36\n2 ק״מ קירור",
+        km:8
+      },
+      {
+        day:"שישי",
+        title:"התאוששות",
+        details:"5 ק״מ קל מאוד",
+        km:5
+      },
+      {
+        day:"שבת",
+        title:"ריצה ארוכה",
+        details:"14 ק״מ בקצב 5:35-6:00. אם מרגיש טוב, 2 הק״מ האחרונים סביב 5:05-5:15.",
+        km:14
+      },
+      {
+        day:"ראשון",
+        title:"מנוחה",
+        details:"מנוחה מלאה",
+        km:0,
+        rest:true
+      }
+    ]
+  },
+  {
+    label:"שבוע 4 · 6/4–12/4",
+    days:[
+      {
+        day:"שני",
+        title:"ריצה קלה",
+        details:"6 ק״מ קל בקצב 5:35-5:55",
+        km:6
+      },
+      {
+        day:"שלישי",
+        title:"ספציפי ל-10K",
+        details:"2 ק״מ חימום\n3×1.6 ק״מ בקצב 4:34-4:38\n3 דקות ג׳וג קל בין החזרות\n2 ק״מ קירור",
+        km:10
+      },
+      {
+        day:"רביעי",
+        title:"ריצה קלה",
+        details:"7 ק״מ קל מאוד",
+        km:7
+      },
+      {
+        day:"חמישי",
+        title:"טמפו קצר",
+        details:"2 ק״מ חימום\n20 דקות בקצב 4:42-4:46\n2 ק״מ קירור",
+        km:8
+      },
+      {
+        day:"שישי",
+        title:"התאוששות",
+        details:"5 ק״מ קל",
+        km:5
+      },
+      {
+        day:"שבת",
+        title:"ריצה ארוכה",
+        details:"12 ק״מ קל. 3 הק״מ האחרונים רק מעט מהירים יותר, לא להפוך לטמפו.",
+        km:12
+      },
+      {
+        day:"ראשון",
+        title:"מנוחה",
+        details:"מנוחה מלאה",
+        km:0,
+        rest:true
+      }
+    ]
+  },
+  {
+    label:"שבוע 5 · 13/4–19/4",
+    days:[
+      {
+        day:"שני",
+        title:"ריצה קלה + סטריידים",
+        details:"6 ק״מ קל + 4×20 שניות סטריידים",
+        km:6
+      },
+      {
+        day:"שלישי",
+        title:"חידוד 800",
+        details:"2 ק״מ חימום\n4×800 מ׳ בקצב 4:10-4:14\n400 מ׳ ג׳וג מלא בין החזרות\n1.5-2 ק״מ קירור",
+        km:7
+      },
+      {
+        day:"רביעי",
+        title:"ריצה קלה",
+        details:"6 ק״מ קל ונינוח",
+        km:6
+      },
+      {
+        day:"חמישי",
+        title:"טמפו קצר",
+        details:"2 ק״מ חימום\n3 ק״מ בקצב 4:38-4:42\n2 ק״מ קירור",
+        km:7
+      },
+      {
+        day:"שישי",
+        title:"התאוששות",
+        details:"4 ק״מ קל מאוד",
+        km:4
+      },
+      {
+        day:"שבת",
+        title:"ריצה ארוכה מקוצרת",
+        details:"10 ק״מ קל בקצב 5:40-6:00. לסיים רענן.",
+        km:10
+      },
+      {
+        day:"ראשון",
+        title:"מנוחה",
+        details:"מנוחה מלאה",
+        km:0,
+        rest:true
+      }
+    ]
+  },
+  {
+    label:"שבוע מירוץ · 20/4–24/4",
+    days:[
+      {
+        day:"שני",
+        title:"ריצה קלה + סטריידים",
+        details:"5 ק״מ קל מאוד + 4×20 שניות סטריידים. רק לפתוח את הרגליים.",
+        km:5
+      },
+      {
+        day:"שלישי",
+        title:"חידוד קצר",
+        details:"2 ק״מ חימום\n3×400 מ׳ בקצב 4:05-4:10\n200 מ׳ ג׳וג קל בין החזרות\n1.5-2 ק״מ קירור",
+        km:6
+      },
+      {
+        day:"רביעי",
+        title:"ריצה קלה",
+        details:"4 ק״מ קל מאוד. לעצור לפני שמרגישים עייפות.",
+        km:4
+      },
+      {
+        day:"חמישי",
+        title:"שחרור",
+        details:"3 ק״מ קל + 4×20 שניות סטריידים. לילה רגוע, אוכל מוכר, שינה טובה.",
+        km:3
+      },
+      {
+        day:"שישי",
+        title:"מירוץ 10K",
+        details:"2 ק״מ חימום\nתרגילי טכניקה קצרים + 3-4 האצות\nמירוץ 10 ק״מ\n1 ק״מ קירור קל",
+        km:13
+      }
+    ]
+  }
+];
 
-[
-{
-day:"ראשון",
-title:"מנוחה",
-details:"מנוחה מלאה או הליכה קלה",
-km:0,
-rest:true
-},
-{
-day:"שני",
-title:"ריצה קלה + סטריידים",
-details:"6 ק״מ בקצב 5:35-5:55\n+ 4×20 שניות סטריידים",
-km:6
-},
-{
-day:"שלישי",
-title:"אינטרוולים",
-details:"חימום: 2 ק״מ קל\nאימון: 5×800 מ׳ בקצב 4:10\nהתאוששות: 400 מ׳ קל\nקירור: 2 ק״מ",
-km:8
-},
-{
-day:"רביעי",
-title:"ריצה קלה",
-details:"6 ק״מ בקצב 5:40-5:55",
-km:6
-},
-{
-day:"חמישי",
-title:"טמפו",
-details:"חימום: 2 ק״מ\nטמפו: 4 ק״מ בקצב 4:45\nקירור: 2 ק״מ",
-km:8
-},
-{
-day:"שישי",
-title:"התאוששות",
-details:"5 ק״מ בקצב 6:00-6:20",
-km:5
-},
-{
-day:"שבת",
-title:"ריצה ארוכה",
-details:"10 ק״מ בקצב 5:45-6:10\nפעם בשבועיים: 2 ק״מ אחרונים בקצב 4:55",
-km:10
+const totalPlannedKm = plan.reduce((sum, weekObj) => {
+  return sum + weekObj.days.reduce((daySum, dayObj) => daySum + dayObj.km, 0);
+}, 0);
+
+function progressKey(weekIndex, dayIndex){
+  return `${PLAN_VERSION}_w${weekIndex}_d${dayIndex}`;
 }
-],
 
-[
-{
-day:"ראשון",
-title:"מנוחה",
-details:"מנוחה מלאה",
-km:0,
-rest:true
-},
-{
-day:"שני",
-title:"ריצה קלה",
-details:"7 ק״מ בקצב 5:35-5:55",
-km:7
-},
-{
-day:"שלישי",
-title:"אינטרוולים",
-details:"חימום: 2 ק״מ\n5×800 מ׳ בקצב 4:10\nקירור: 2 ק״מ",
-km:8
-},
-{
-day:"רביעי",
-title:"ריצה קלה",
-details:"6 ק״מ",
-km:6
-},
-{
-day:"חמישי",
-title:"טמפו",
-details:"2 ק״מ חימום\n4 ק״מ בקצב 4:45\n2 ק״מ קירור",
-km:8
-},
-{
-day:"שישי",
-title:"התאוששות",
-details:"5 ק״מ קל",
-km:5
-},
-{
-day:"שבת",
-title:"ריצה ארוכה",
-details:"11 ק״מ בקצב 5:45-6:10",
-km:11
+function getCompletedKm(){
+  let total = 0;
+
+  plan.forEach((weekObj, weekIndex) => {
+    weekObj.days.forEach((dayObj, dayIndex) => {
+      if(localStorage.getItem(progressKey(weekIndex, dayIndex)) === "true"){
+        total += dayObj.km;
+      }
+    });
+  });
+
+  return total;
 }
-]
-
-]
 
 function render(){
+  if(week < 0){ week = 0; }
+  if(week > plan.length - 1){ week = plan.length - 1; }
 
-const container = document.getElementById("workouts")
-container.innerHTML=""
+  localStorage.setItem(`${PLAN_VERSION}_week`, week);
 
-document.getElementById("weekTitle").innerText="שבוע "+(parseInt(week)+1)
+  const currentWeek = plan[week];
+  const container = document.getElementById("workouts");
+  container.innerHTML = "";
 
-let totalKm=0
+  document.getElementById("weekTitle").innerHTML = `
+    ${currentWeek.label}<br>
+    <span class="small">שבוע ${week + 1} מתוך ${plan.length}</span>
+  `;
 
-plan[week].forEach((w,i)=>{
+  currentWeek.days.forEach((w, i) => {
+    const key = progressKey(week, i);
+    const saved = localStorage.getItem(key) === "true";
 
-const key="w"+week+"_"+i
-const saved=localStorage.getItem(key)
+    const card = document.createElement("div");
+    card.className = "card";
 
-const card=document.createElement("div")
-card.className="card"
+    if(w.rest){ card.classList.add("rest"); }
+    if(saved){ card.classList.add("doneCard"); }
 
-if(w.rest){card.classList.add("rest")}
+    card.innerHTML = `
+      <b>${w.day} – ${w.title}</b><br>
+      <div class="details">${w.details.replace(/\n/g, "<br>")}</div>
+      <br>${w.km} ק״מ
+      ${w.rest ? "" : `<br><button class="${saved ? "done" : ""}" onclick="toggle('${key}')">${saved ? "✔ הושלם" : "סיימתי"}</button>`}
+    `;
 
-card.innerHTML=`
-<b>${w.day} – ${w.title}</b><br>
-<div class="details">${w.details.replace(/\n/g,"<br>")}</div>
-<br>${w.km} ק״מ
-${w.rest ? "" : `<br><button onclick="toggle('${key}',this)">
-${saved ? "✔ הושלם" : "סיימתי"}
-</button>`}
-`
+    container.appendChild(card);
+  });
 
-if(saved){totalKm+=w.km}
-
-container.appendChild(card)
-
-})
-
-drawChart(totalKm)
-
+  const completedKm = getCompletedKm();
+  document.getElementById("kmSummary").innerHTML = `<b>${completedKm}</b> מתוך <b>${totalPlannedKm}</b> ק״מ מתוכננים`;
+  drawChart(completedKm, totalPlannedKm);
 }
 
 function toggle(key){
+  if(localStorage.getItem(key) === "true"){
+    localStorage.removeItem(key);
+  }else{
+    localStorage.setItem(key, "true");
+  }
 
-if(localStorage.getItem(key)){
-localStorage.removeItem(key)
-}else{
-localStorage.setItem(key,true)
-}
-
-render()
-
+  render();
 }
 
 function nextWeek(){
-if(week < plan.length-1){
-week++
-localStorage.setItem("week",week)
-render()
-}
+  if(week < plan.length - 1){
+    week++;
+    render();
+  }
 }
 
 function prevWeek(){
-if(week > 0){
-week--
-localStorage.setItem("week",week)
-render()
-}
-}
-
-function drawChart(km){
-
-const ctx=document.getElementById('chart')
-
-new Chart(ctx,{
-type:'bar',
-data:{
-labels:['ק״מ שבוצעו'],
-datasets:[{
-data:[km],
-backgroundColor:'#22c55e'
-}]
-}
-})
-
+  if(week > 0){
+    week--;
+    render();
+  }
 }
 
-render()
+function drawChart(completedKm, totalKm){
+  const ctx = document.getElementById("chart");
 
+  if(chartInstance){
+    chartInstance.destroy();
+  }
+
+  chartInstance = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels:["התקדמות בתוכנית"],
+      datasets:[
+        {
+          label:"בוצעו",
+          data:[completedKm],
+          backgroundColor:"#22c55e"
+        },
+        {
+          label:"מתוכנן",
+          data:[totalKm],
+          backgroundColor:"#cbd5e1"
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      scales:{
+        y:{
+          beginAtZero:true
+        }
+      }
+    }
+  });
+}
+
+render();
 </script>
 
 </body>
